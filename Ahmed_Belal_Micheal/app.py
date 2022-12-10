@@ -68,7 +68,7 @@ def preProcessData(csvFileName):
 
 
 if __name__ == "__main__":
-    extractWavFeatures (r"sample copy.wav" ,csvFileName )
+    extractWavFeatures (r"testing_set/sample.wav" ,csvFileName )
     data = preProcessData(csvFileName)
     #print(data)
     mode=model.predict(data)

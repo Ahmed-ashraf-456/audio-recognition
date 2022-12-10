@@ -44,6 +44,7 @@ def record_audio_train():
 		audio.terminate()
 		OUTPUT_FILENAME=Name+"-sample"+str(count)+".wav"
 		WAVE_OUTPUT_FILENAME=os.path.join("training_set",OUTPUT_FILENAME)
+		print(WAVE_OUTPUT_FILENAME)
 		trainedfilelist = open("training_set_addition.txt", 'a')
 		trainedfilelist.write(OUTPUT_FILENAME+"\n")
 		waveFile = wave.open(WAVE_OUTPUT_FILENAME, 'wb')
