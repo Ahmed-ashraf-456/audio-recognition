@@ -98,7 +98,7 @@ def record():
          print("Input Device id ", i, " - ", audio.get_device_info_by_host_api_device_index(0, i).get('name'))
    print("-------------------------------------------------------------")
    # index = int(input())	
-   index = 1	
+   index = 1
    print("recording via index "+str(index))
    stream = audio.open(format=FORMAT, channels=CHANNELS,
             rate=RATE, input=True,input_device_index = index,
