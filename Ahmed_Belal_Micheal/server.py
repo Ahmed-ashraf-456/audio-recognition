@@ -8,7 +8,10 @@ import warnings
 import numpy as np
 from scipy.io.wavfile import read
 import pickle
-model= pickle.load(open('final_model_test.sav','rb'))
+model= pickle.load(open('voiceWithOthers.sav','rb'))
+import python_speech_features as mfcc
+from sklearn import preprocessing
+
 import librosa
 import os
 import csv
@@ -61,25 +64,84 @@ def extractWavFeatures(soundFile, csvFileName):
    writer.writerow(to_append.split())
    file.close()
 
+
 #Reading a dataset and convert file name to corresbonding umnber
 def preProcessData(csvFileName):
    data = pd.read_csv(csvFileName)
    data = data.drop(['filename'],axis=1)
    data = data.drop(['label'],axis=1)
    data = data.drop(['chroma_stft'],axis=1)
+   # for i in range(1, 41):
+   #      data = data.drop([f'mfcc{i}'],axis=1)
    #data = normalize( data )
    return data
 
-
+   
 def showScore():
+   
    csvFileName = "Speaker_File1.csv"
    extractWavFeatures (r"testing_set/sample.wav" ,csvFileName )
    data = preProcessData(csvFileName)
    #print(data)
    mode=model.predict(data)
+   print('DCT value')
    print (mode)
    return mode
 
+
+def calculate_delta(array):
+    
+    rows,cols = array.shape
+    print(rows)
+    print(cols)
+    deltas = np.zeros((rows,20))
+    N = 2
+    for i in range(rows):
+        index = []
+        j = 1
+        while j <= N:
+            if i-j < 0:
+                first =0
+            else:
+                first = i-j
+            if i+j > rows-1:
+                second = rows-1
+            else:
+                second = i+j 
+            index.append((second,first))
+            j+=1
+        deltas[i] = ( array[index[0][0]]-array[index[0][1]] + (2 * (array[index[1][0]]-array[index[1][1]])) ) / 10
+    return deltas
+
+def extract_features_GMM(file_path):
+    audio , sample_rate = librosa.load(file_path, res_type='kaiser_fast')
+    mfcc_feature = mfcc.mfcc(audio,sample_rate, 0.025, 0.01,20,nfft = 1200, appendEnergy = True)    
+    mfcc_feature = preprocessing.scale(mfcc_feature)
+    print(mfcc_feature)
+    delta = calculate_delta(mfcc_feature)
+    combined = np.hstack((mfcc_feature,delta)) 
+    return combined
+
+
+def loadModelsGMM(filePath):
+   testFeatures = extract_features_GMM(filePath)
+   gmmModels = {
+   'Michael': 'Michael.gmm',
+   'Belal': 'Belal.gmm',
+   'Ahmed_Ashraf':'Ahmed_Ashraf.gmm',
+   'others':'others.gmm'
+   }
+   scores = {}
+   mx = -100
+   result = " "
+   for name,modelName in gmmModels.items():
+      gmmModels[name] = pickle.load(open(modelName,'rb'))
+      scores[name] = gmmModels[name].score(testFeatures)
+      if scores[name] > mx:
+         mx = scores[name]
+         result = name
+   print(scores)
+   return result
 
 @app.route('/record',methods=['GET','POST'])
 def record():
@@ -123,7 +185,8 @@ def record():
    waveFile.writeframes(b''.join(Recordframes))
    waveFile.close()
    result = showScore()
-   return redirect(url_for('index', msg=result))
+   resultsGMM = loadModelsGMM("testing_set/sample.wav")
+   return redirect(url_for('index', msg=resultsGMM))
 
 
 if __name__ == '__main__':
